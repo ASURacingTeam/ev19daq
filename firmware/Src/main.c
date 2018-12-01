@@ -39,7 +39,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f4xx_hal.h"
-#include "adc.h"
 #include "tim.h"
 #include "gpio.h"
 
@@ -48,7 +47,7 @@
 #define radiusOfWheel .5
 #define clkFreq 16000000
 
-uint16_t frontRightFlag =0 ;			  
+uint16_t frontRightFlag =0 ;			  // flags to make sure channel enterrupt has been happened 
 uint16_t frontLeftFlag =0 ;
 uint16_t rearRightFlag =0 ;
 uint16_t rearLeftFlag =0 ;
@@ -64,7 +63,7 @@ float rearRightWheelSpeed =0 ;		// speed of rear Right Wheel
 float rearLeftWheelSpeed =0 ;		// speed of rear left Wheel
 
 
-float carAvarageSpeed =0 ;   		// avarage speed of the car 
+uint16_t carAvarageSpeed =0 ;   		// avarage speed of the car 
 
 
 /* USER CODE END Includes */
@@ -89,7 +88,8 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
  if (htim->Instance==TIM1)
   {
-		/* if channel 1 interrupted  
+		// i search for the code and i will add it but he will be in the form of this below 
+		/*if channel 1 interrupted  
 			frontRightFlag =1 ; 
 		
 		if channel 2 interrupted 
@@ -119,6 +119,10 @@ int main(void)
 	uint32_t rearRightDuration =0 ;			// duration of 1/4 of rear Right Wheel
 	uint32_t rearleftDuration =0 ;			// duration of 1/4 of rear left Wheel
 
+	uint8_t frontRightWheelCheck =0; 		// variable to check if the steps of calculation of the front right wheel duration have been done or not 
+	uint8_t frontLeftWheelCheck =0; 		// variable to check if the steps of calculation of the front left Wheel duration have been done or not 
+	uint8_t rearRightWheelCheck =0; 		// variable to check if the steps of calculation of the rear Right Wheel duration have been done or not 
+	uint8_t rearLeftWheelCheck =0; 			// variable to check if the steps of calculation of the rear left Wheel duration have been done or not 
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -144,7 +148,6 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_TIM1_Init();
-  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -160,30 +163,41 @@ int main(void)
 	if (frontRightFlag == 1){
 		frontRightInputCapture = (__HAL_TIM_GetCompare(&htim1, TIM_CHANNEL_1)- frontRightInputCapture );    //read TIM1 channel 1 capture value
 		frontRightDuration = ( frontRightInputCapture / clkFreq ) ;    // duration in seconds 
-		frontRightWheelSpeed = (((60 /(4*frontRightDuration)) *(2*pi/60)) * radiusOfWheel ) ; // 60 to convert to min, 2pi/60 to convert to rad/sec, *raduis to convert to m/sec
+		frontRightWheelSpeed = (((60 /(4*frontRightDuration)) *(2*pi/60)) * radiusOfWheel ) ; // 60 to convert to min,*4 to make it for one revolution ,2pi/60 to convert to rad/sec, *raduis to convert to m/sec
 		frontRightFlag =0 ;
+		frontRightWheelCheck =1 ;  // change 	front Right Wheel Check value to 1 to make sure the calculations have been done 
 	}
 	if (frontLeftFlag == 1){
 		frontLeftInputCapture= (__HAL_TIM_GetCompare(&htim1, TIM_CHANNEL_2)- frontLeftInputCapture);    //read TIM1 channel 1 capture value
 		frontLeftDuration = (frontLeftInputCapture / clkFreq) ;    // duration in seconds 
-		frontLeftWheelSpeed = (((60 /(4*frontLeftDuration)) *(2*pi/60)) * radiusOfWheel ) ; // 60 to convert to min, 2pi/60 to convert to rad/sec, *raduis to convert to m/sec
+		frontLeftWheelSpeed = (((60 /(4*frontLeftDuration)) *(2*pi/60)) * radiusOfWheel ) ; // 60 to convert to min,*4 to make it for one revolution, 2pi/60 to convert to rad/sec, *raduis to convert to m/sec
 		frontLeftFlag =0 ;
+		frontLeftWheelCheck = 1 ;  // change 	front Left Wheel Check value to 1 to make sure the calculations have been done 
 	}
 	if (rearRightFlag == 1){
 		rearRightInputCapture= (__HAL_TIM_GetCompare(&htim1, TIM_CHANNEL_3)- rearRightInputCapture);    //read TIM1 channel 1 capture value
 		rearRightDuration = (rearRightInputCapture / clkFreq);    // duration in seconds 
-		rearRightWheelSpeed = (((60 /(4*rearRightDuration)) *(2*pi/60)) * radiusOfWheel ) ;// 60 to convert to min, 2pi/60 to convert to rad/sec, *raduis to convert to m/sec
+		rearRightWheelSpeed = (((60 /(4*rearRightDuration)) *(2*pi/60)) * radiusOfWheel ) ;// 60 to convert to min,*4 to make it for one revolution, 2pi/60 to convert to rad/sec, *raduis to convert to m/sec
 		rearRightFlag =0 ; 
+		rearRightWheelCheck =1;  // change 	rear Right Wheel Check value to 1 to make sure the calculations have been done 
 	}
 	if (rearLeftFlag== 1){
 		rearLeftInputCapture= (__HAL_TIM_GetCompare(&htim1, TIM_CHANNEL_4)- rearLeftInputCapture);    //read TIM1 channel 1 capture value
 		rearleftDuration = (rearLeftInputCapture / clkFreq) ; 		  // duration in seconds 
-		rearLeftWheelSpeed = (((60 /(4*rearleftDuration)) *(2*pi/60)) * radiusOfWheel ) ;// 60 to convert to min, 2pi/60 to convert to rad/sec, *raduis to convert to m/sec
-		rearLeftFlag = 0; 
+		rearLeftWheelSpeed = (((60 /(4*rearleftDuration)) *(2*pi/60)) * radiusOfWheel ) ;// 60 to convert to min,*4 to make it for one revolution, 2pi/60 to convert to rad/sec, *raduis to convert to m/sec
+		rearLeftFlag = 0;
+		rearLeftWheelCheck = 1 ;  // change rear Left Wheel Check value to 1 to make sure the calculations have been done 		
+	}
+	if ((frontRightWheelCheck & frontLeftWheelCheck & rearRightWheelCheck & rearLeftWheelCheck)== 1){
+	carAvarageSpeed = ((frontRightWheelSpeed + frontLeftWheelSpeed + rearRightWheelSpeed + rearLeftWheelSpeed )/4) ; // avarage speed of the car 
+  frontRightWheelCheck = 0 ;   // return the value of check to 0 to be aware of changing the value when the calculations happen
+	frontLeftWheelCheck = 0 ;		 // return the value of check to 0 to be aware of changing the value when the calculations happen
+	rearRightWheelCheck = 0 ;		 // return the value of check to 0 to be aware of changing the value when the calculations happen
+	rearLeftWheelCheck = 0 ;		 // return the value of check to 0 to be aware of changing the value when the calculations happen
 	}
 	
-	carAvarageSpeed = ((frontRightWheelSpeed + frontLeftWheelSpeed + rearRightWheelSpeed + rearLeftWheelSpeed )/4) ; // avarage speed of the car 
-  }
+	
+	}
   /* USER CODE END 3 */
 
 }
