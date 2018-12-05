@@ -173,7 +173,7 @@ int main(void)
 
   /* USER CODE BEGIN 3 */
 	  reading_bit=HAL_GPIO_ReadPin(GPIOC,GPIO_PIN_0);
-	  shift(reading_bit);
+	  shift_bit(reading_bit);
   }
   /* USER CODE END 3 */
 
