@@ -44,8 +44,9 @@
 
 /* USER CODE BEGIN Includes */
 #define pi 3.1415
-#define radiusOfWheel .5
+#define radiusOfWheel .1
 #define clkFreq 16000000
+#define maximumValueOfTimer 65536
 
 uint16_t frontRightFlag =0 ;			  // flags to make sure channel enterrupt has been happened 
 uint16_t frontLeftFlag =0 ;
@@ -65,7 +66,7 @@ float rearLeftWheelSpeed =0 ;		// speed of rear left Wheel
 
 uint16_t carAvarageSpeed =0 ;   		// avarage speed of the car 
 
-
+uint16_t updateCounter = 0 ;    // variable to know how many times the timer make an update between two pulses 
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -88,22 +89,26 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
  if (htim->Instance==TIM1)
   {
-		// i search for the code and i will add it but he will be in the form of this below 
-		/*if channel 1 interrupted  
-			frontRightFlag =1 ; 
-		
-		if channel 2 interrupted 
-			frontleftFlag = 1 ;
-		
-		if channel 3 interrupted  
-			rearRightFlag =1 ; 
-
-		if channel 4 interrupted  
+		if((htim->Instance->CCMR1 & TIM_CCMR1_CC1S) != 0x00U){
+			frontRightFlag =1 ;
+		}			
+    if((htim->Instance->CCMR1 & TIM_CCMR1_CC2S) != 0x00U){
+			frontLeftFlag = 1 ;
+		}	
+		if((htim->Instance->CCMR2 & TIM_CCMR2_CC3S) != 0x00U){
+		rearRightFlag =1 ; 
+	}
+    if((htim->Instance->CCMR2 & TIM_CCMR2_CC4S) != 0x00U){
 			rearLeftFlag =1 ; 		
+		}
 		
-		*/
 	}
 }
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+	{
+		updateCounter ++ ;
+	}
 /* USER CODE END 0 */
 
 /**
@@ -160,31 +165,33 @@ int main(void)
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
+	if (updateCounter <10 )
+	{
 	if (frontRightFlag == 1){
-		frontRightInputCapture = (__HAL_TIM_GetCompare(&htim1, TIM_CHANNEL_1)- frontRightInputCapture );    //read TIM1 channel 1 capture value
+		frontRightInputCapture = (((updateCounter * maximumValueOfTimer) + __HAL_TIM_GetCompare(&htim1, TIM_CHANNEL_1))- frontRightInputCapture );    //read TIM1 channel 1 capture value
 		frontRightDuration = ( frontRightInputCapture / clkFreq ) ;    // duration in seconds 
-		frontRightWheelSpeed = (((60 /(4*frontRightDuration)) *(2*pi/60)) * radiusOfWheel ) ; // 60 to convert to min,*4 to make it for one revolution ,2pi/60 to convert to rad/sec, *raduis to convert to m/sec
+		frontRightWheelSpeed = ((((60 /(4*frontRightDuration)) *(2*pi/60)) * radiusOfWheel )* (18/5)) ; // 60 to convert to min,*4 to make it for one revolution ,2pi/60 to convert to rad/sec, *raduis to convert to m/sec, *(18/5) to convert to km/h
 		frontRightFlag =0 ;
 		frontRightWheelCheck =1 ;  // change 	front Right Wheel Check value to 1 to make sure the calculations have been done 
 	}
 	if (frontLeftFlag == 1){
-		frontLeftInputCapture= (__HAL_TIM_GetCompare(&htim1, TIM_CHANNEL_2)- frontLeftInputCapture);    //read TIM1 channel 1 capture value
+		frontLeftInputCapture= (((updateCounter * maximumValueOfTimer) + __HAL_TIM_GetCompare(&htim1, TIM_CHANNEL_2))- frontLeftInputCapture);    //read TIM1 channel 1 capture value
 		frontLeftDuration = (frontLeftInputCapture / clkFreq) ;    // duration in seconds 
-		frontLeftWheelSpeed = (((60 /(4*frontLeftDuration)) *(2*pi/60)) * radiusOfWheel ) ; // 60 to convert to min,*4 to make it for one revolution, 2pi/60 to convert to rad/sec, *raduis to convert to m/sec
+		frontLeftWheelSpeed = ((((60 /(4*frontLeftDuration)) *(2*pi/60)) * radiusOfWheel )*(18/5)) ; // 60 to convert to min,*4 to make it for one revolution, 2pi/60 to convert to rad/sec, *raduis to convert to m/sec, *(18/5) to convert to km/h
 		frontLeftFlag =0 ;
 		frontLeftWheelCheck = 1 ;  // change 	front Left Wheel Check value to 1 to make sure the calculations have been done 
 	}
 	if (rearRightFlag == 1){
-		rearRightInputCapture= (__HAL_TIM_GetCompare(&htim1, TIM_CHANNEL_3)- rearRightInputCapture);    //read TIM1 channel 1 capture value
+		rearRightInputCapture= (((updateCounter * maximumValueOfTimer) + __HAL_TIM_GetCompare(&htim1, TIM_CHANNEL_3))- rearRightInputCapture);    //read TIM1 channel 1 capture value
 		rearRightDuration = (rearRightInputCapture / clkFreq);    // duration in seconds 
-		rearRightWheelSpeed = (((60 /(4*rearRightDuration)) *(2*pi/60)) * radiusOfWheel ) ;// 60 to convert to min,*4 to make it for one revolution, 2pi/60 to convert to rad/sec, *raduis to convert to m/sec
+		rearRightWheelSpeed = ((((60 /(4*rearRightDuration)) *(2*pi/60)) * radiusOfWheel )*(18/5)) ;// 60 to convert to min,*4 to make it for one revolution, 2pi/60 to convert to rad/sec, *raduis to convert to m/sec ,*(18/5) to convert to km/h
 		rearRightFlag =0 ; 
 		rearRightWheelCheck =1;  // change 	rear Right Wheel Check value to 1 to make sure the calculations have been done 
 	}
 	if (rearLeftFlag== 1){
-		rearLeftInputCapture= (__HAL_TIM_GetCompare(&htim1, TIM_CHANNEL_4)- rearLeftInputCapture);    //read TIM1 channel 1 capture value
+		rearLeftInputCapture= (((updateCounter * maximumValueOfTimer) +__HAL_TIM_GetCompare(&htim1, TIM_CHANNEL_4))- rearLeftInputCapture);    //read TIM1 channel 1 capture value
 		rearleftDuration = (rearLeftInputCapture / clkFreq) ; 		  // duration in seconds 
-		rearLeftWheelSpeed = (((60 /(4*rearleftDuration)) *(2*pi/60)) * radiusOfWheel ) ;// 60 to convert to min,*4 to make it for one revolution, 2pi/60 to convert to rad/sec, *raduis to convert to m/sec
+		rearLeftWheelSpeed = ((((60 /(4*rearleftDuration)) *(2*pi/60)) * radiusOfWheel )*(18/5)) ;// 60 to convert to min,*4 to make it for one revolution, 2pi/60 to convert to rad/sec, *raduis to convert to m/sec ,*(18/5) to convert to km/h
 		rearLeftFlag = 0;
 		rearLeftWheelCheck = 1 ;  // change rear Left Wheel Check value to 1 to make sure the calculations have been done 		
 	}
@@ -196,8 +203,8 @@ int main(void)
 	rearLeftWheelCheck = 0 ;		 // return the value of check to 0 to be aware of changing the value when the calculations happen
 	}
 	
-	
 	}
+}
   /* USER CODE END 3 */
 
 }
