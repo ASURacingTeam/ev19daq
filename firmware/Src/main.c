@@ -39,9 +39,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f1xx_hal.h"
-#include "adc.h"
-#include "dma.h"
-#include "tim.h"
+#include "can.h"
 #include "gpio.h"
 
 /* USER CODE BEGIN Includes */
@@ -49,10 +47,12 @@
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
-
+CAN_HandleTypeDef hcan;
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-uint16_t adc_data[4];
+//CanTxMsgTypeDef*            TxM;
+//CanRxMsgTypeDef*            RxM;
+CAN_FilterConfTypeDef sFilterConfig;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -72,18 +72,7 @@ void SystemClock_Config(void);
   *
   * @retval None
   */
-	float displacement[4];
-	
-	void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)  
-{
-    if (htim->Instance==TIM3)  {
-		
-			displacement[0]=((float)adc_data[0]/4096)*50;
-			displacement[1]=((float)adc_data[1]/4096)*50;
-			displacement[2]=((float)adc_data[2]/4096)*50;
-			displacement[3]=((float)adc_data[3]/4096)*50;
-        }
-}
+uint8_t suspenssion_displacement[4] ;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -108,19 +97,50 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_DMA_Init();
-  MX_ADC1_Init();
-  MX_TIM3_Init();
+  MX_CAN_Init();
   /* USER CODE BEGIN 2 */
-HAL_TIM_Base_Start_IT(&htim3);
-HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_data,4);
+//hcan.pTxMsg=&TxM;
+//hcan.pRxMsg=&RxM;
+
+sFilterConfig.FilterNumber=0;
+sFilterConfig.FilterMode=CAN_FILTERMODE_IDLIST;
+sFilterConfig.FilterScale=CAN_FILTERSCALE_32BIT;
+sFilterConfig.FilterIdHigh=0x245<<5;
+sFilterConfig.FilterIdLow=0;
+sFilterConfig.FilterMaskIdHigh=0;
+sFilterConfig.FilterMaskIdLow=0;
+sFilterConfig.FilterFIFOAssignment=0;
+sFilterConfig.BankNumber=14;
+
+HAL_CAN_ConfigFilter(&hcan, &sFilterConfig);
+hcan.pTxMsg->StdId=0x244;
+hcan.pTxMsg->RTR=CAN_RTR_DATA ;
+hcan.pTxMsg->IDE=CAN_ID_STD ;
+hcan.pTxMsg->DLC=1;
+
+HAL_CAN_Receive_IT(&hcan ,  CAN_FIFO0) ;
+
+suspenssion_displacement[0]=150;
+suspenssion_displacement[1]=100;
+suspenssion_displacement[2]=50;
+suspenssion_displacement[3]=20;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-		
+
+
+	 hcan.pTxMsg->Data[0]=(suspenssion_displacement[0] );
+
+	 hcan.pTxMsg->Data[1]=(suspenssion_displacement[1]);
+
+	  HAL_CAN_Transmit(&hcan, 1);
+
+
+	// hcan.pTxMsg->Data[0]=(adc_data[0] & (0x0F));
+	// hcan.pTxMsg->Data[1]=((adc_data[0] & (0xF0))>>8);
 
   /* USER CODE END WHILE */
 
@@ -140,7 +160,6 @@ void SystemClock_Config(void)
 
   RCC_OscInitTypeDef RCC_OscInitStruct;
   RCC_ClkInitTypeDef RCC_ClkInitStruct;
-  RCC_PeriphCLKInitTypeDef PeriphClkInit;
 
     /**Initializes the CPU, AHB and APB busses clocks 
     */
@@ -166,13 +185,6 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
-  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }

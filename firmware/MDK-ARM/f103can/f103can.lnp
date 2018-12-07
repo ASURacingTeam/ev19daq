@@ -1,0 +1,25 @@
+--cpu Cortex-M3
+"f103can\startup_stm32f103xb.o"
+"f103can\main.o"
+"f103can\gpio.o"
+"f103can\can.o"
+"f103can\stm32f1xx_it.o"
+"f103can\stm32f1xx_hal_msp.o"
+"f103can\stm32f1xx_hal_gpio_ex.o"
+"f103can\stm32f1xx_hal_can.o"
+"f103can\stm32f1xx_hal_tim.o"
+"f103can\stm32f1xx_hal_tim_ex.o"
+"f103can\stm32f1xx_hal.o"
+"f103can\stm32f1xx_hal_rcc.o"
+"f103can\stm32f1xx_hal_rcc_ex.o"
+"f103can\stm32f1xx_hal_gpio.o"
+"f103can\stm32f1xx_hal_dma.o"
+"f103can\stm32f1xx_hal_cortex.o"
+"f103can\stm32f1xx_hal_pwr.o"
+"f103can\stm32f1xx_hal_flash.o"
+"f103can\stm32f1xx_hal_flash_ex.o"
+"f103can\system_stm32f1xx.o"
+--library_type=microlib --strict --scatter "f103can\f103can.sct"
+--summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list "f103can.map" -o f103can\f103can.axf
